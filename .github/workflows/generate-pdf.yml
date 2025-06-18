@@ -1,0 +1,113 @@
+name: Generate Tutorial PDF
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/*.md'
+      - '**/*.py'
+      - '.github/workflows/generate-pdf.yml'
+      - '.github/workflows/template.tex'
+  workflow_dispatch:
+
+jobs:
+  generate-pdf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Pandoc and LaTeX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pandoc \
+            texlive-xetex \
+            texlive-fonts-recommended \
+            texlive-fonts-extra \
+            texlive-latex-extra \
+            texlive-extra-utils \
+            fonts-dejavu
+
+      - name: Create combined markdown file
+        run: |
+          echo "---" > tutorial.md
+          echo "title: Python Tutorial for Java and Go Developers" >> tutorial.md
+          echo "author: Generated from Tutorial Content" >> tutorial.md
+          echo "date: $(date +%Y-%m-%d)" >> tutorial.md
+          echo "documentclass: article" >> tutorial.md
+          echo "papersize: a4" >> tutorial.md
+          echo "fontsize: 11pt" >> tutorial.md
+          echo "geometry: margin=1in" >> tutorial.md
+          echo "linkcolor: blue" >> tutorial.md
+          echo "toc: true" >> tutorial.md
+          echo "toc-depth: 3" >> tutorial.md
+          echo "highlight-style: tango" >> tutorial.md
+          echo "---" >> tutorial.md
+          echo "" >> tutorial.md
+          
+          # Add main README
+          cat README.md >> tutorial.md
+          echo "" >> tutorial.md
+          
+          # Add each section
+          for dir in $(ls -d [0-9][0-9]_*/); do
+            if [ -f "${dir}README.md" ]; then
+              section_name=$(echo ${dir%/} | sed 's/[0-9][0-9]_//' | tr '-' ' ' | sed 's/.*/\u&/')
+              echo "# ${section_name}" >> tutorial.md
+              cat "${dir}README.md" >> tutorial.md
+              echo "" >> tutorial.md
+              
+              # Add examples if they exist
+              if [ -d "${dir}examples" ]; then
+                echo "## Examples" >> tutorial.md
+                for example in ${dir}examples/*.py; do
+                  if [ -f "$example" ]; then
+                    echo "### $(basename $example)" >> tutorial.md
+                    echo '```python' >> tutorial.md
+                    cat "$example" >> tutorial.md
+                    echo '```' >> tutorial.md
+                    echo "" >> tutorial.md
+                  fi
+                done
+              fi
+            fi
+          done
+
+      - name: Generate PDF
+        run: |
+          pandoc tutorial.md \
+            --pdf-engine=xelatex \
+            --highlight-style=tango \
+            --template=.github/workflows/template.tex \
+            --listings \
+            --number-sections \
+            -V documentclass=article \
+            -V papersize=a4 \
+            -V fontsize=11pt \
+            -V geometry:margin=1in \
+            -V linkcolor:blue \
+            -V mainfont="DejaVu Serif" \
+            -V monofont="DejaVu Sans Mono" \
+            -o python_tutorial.pdf
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-tutorial-pdf
+          path: python_tutorial.pdf
+
+      - name: Create Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(date +%Y%m%d_%H%M%S)
+          gh release create "v${VERSION}" \
+            --title "Tutorial PDF ${VERSION}" \
+            --notes "Automatically generated tutorial PDF" \
+            python_tutorial.pdf 

@@ -1,0 +1,97 @@
+\documentclass[$if(fontsize)$$fontsize$,$endif$$if(papersize)$$papersize$,$endif$]{$documentclass$}
+
+% Set page size and margins
+\usepackage{geometry}
+\geometry{$geometry$}
+
+% Unicode support
+\usepackage{fontspec}
+\usepackage{unicode-math}
+
+% Hyperlinks
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=$if(linkcolor)$$linkcolor$$else$blue$endif$,
+  urlcolor=$if(linkcolor)$$linkcolor$$else$blue$endif$
+}
+
+% Code highlighting
+\usepackage{fancyvrb}
+\usepackage{xcolor}
+\usepackage{listings}
+
+% Custom colors for code blocks
+\definecolor{codebackground}{RGB}{248,248,248}
+\definecolor{codecomment}{RGB}{112,128,144}
+\definecolor{codekeyword}{RGB}{0,119,170}
+\definecolor{codestring}{RGB}{170,34,255}
+
+% Configure code blocks
+\lstset{
+  frame=single,
+  backgroundcolor=\color{codebackground},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{codekeyword}\bfseries,
+  commentstyle=\color{codecomment}\itshape,
+  stringstyle=\color{codestring},
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false,
+  numbers=left,
+  numberstyle=\tiny\color{codecomment},
+  numbersep=5pt
+}
+
+% Set fonts
+\setmainfont{$if(mainfont)$$mainfont$$else$DejaVu Serif$endif$}
+\setmonofont{$if(monofont)$$monofont$$else$DejaVu Sans Mono$endif$}
+
+% Title page
+\usepackage{titling}
+\pretitle{\begin{center}\LARGE}
+\posttitle{\par\end{center}\vskip 0.5em}
+\preauthor{\begin{center}\large}
+\postauthor{\par\end{center}}
+\predate{\begin{center}\large}
+\postdate{\par\end{center}}
+
+% Table of contents styling
+\usepackage{tocloft}
+\renewcommand{\cftsecfont}{\rmfamily\bfseries}
+\renewcommand{\cftsecpagefont}{\rmfamily\bfseries}
+\setlength{\cftbeforesecskip}{3pt}
+\setlength{\cftbeforesubsecskip}{2pt}
+
+% Section styling
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries}{\thesubsection}{1em}{}
+
+% Header and footer
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhead{}
+\fancyhead[R]{\thepage}
+\fancyhead[L]{Python Tutorial}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\begin{document}
+
+% Title page
+\maketitle
+\thispagestyle{empty}
+\newpage
+
+% Table of contents
+$if(toc)$
+\tableofcontents
+\newpage
+$endif$
+
+$body$
+
+\end{document} 
