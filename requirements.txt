@@ -1,0 +1,15 @@
+# Core packages for development
+pytest>=7.4.0  # Testing framework
+mypy>=1.5.0   # Static type checker (helpful for Java/Go developers)
+black>=23.7.0  # Code formatter
+pylint>=2.17.5 # Linter
+
+# Example packages for later sections
+requests>=2.31.0  # HTTP client
+aiohttp>=3.8.5   # Async HTTP client
+sqlalchemy>=2.0.20  # Database ORM
+
+# New packages from the code block
+typing-extensions>=4.7.0
+pydantic>=2.4.0
+python-dotenv>=1.0.0 
