@@ -93,6 +93,7 @@ jobs:
             -V linkcolor:blue \
             -V mainfont="DejaVu Serif" \
             -V monofont="DejaVu Sans Mono" \
+            -V title="Python Tutorial for Java and Go Developers" \
             -o python_tutorial.pdf
 
       - name: Upload PDF artifact
