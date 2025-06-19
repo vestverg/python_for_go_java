@@ -8,6 +8,7 @@ pylint>=2.17.5 # Linter
 requests>=2.31.0  # HTTP client
 aiohttp>=3.8.5   # Async HTTP client
 sqlalchemy>=2.0.20  # Database ORM
+numpy>=1.24.0     # Numerical computing (for multiprocessing examples)
 
 # New packages from the code block
 typing-extensions>=4.7.0

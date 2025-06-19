@@ -7,6 +7,7 @@ Example demonstrating Python's threading capabilities.
 import threading
 import time
 import random
+import queue
 from queue import Queue
 from typing import List, Optional
 from dataclasses import dataclass
@@ -61,7 +62,7 @@ class Worker(threading.Thread):
                 # Update counter
                 self.counter.increment()
                 
-            except Queue.Empty:
+            except queue.Empty:
                 # No more tasks
                 continue
     
