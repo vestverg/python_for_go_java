@@ -1,6 +1,6 @@
-# Concurrency in Python
+# ⚡ Concurrency in Python
 
-## Introduction
+## 📖 Introduction
 
 This section explores Python's concurrency features, including threading, multiprocessing, and asynchronous programming. Python's approach to concurrency differs significantly from Java and Go, with unique characteristics due to the Global Interpreter Lock (GIL) and its async/await syntax.
 

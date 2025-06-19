@@ -1,6 +1,6 @@
-# Object-Oriented Programming in Python
+# 🏗️ Object-Oriented Programming in Python
 
-## Introduction
+## 📖 Introduction
 
 This section explores Python's object-oriented programming (OOP) features, comparing them with Java and Go. Python's OOP model is more flexible than Java's and offers features not found in Go, while maintaining simplicity and readability.
 

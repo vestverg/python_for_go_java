@@ -1,6 +1,6 @@
-# Modules and Packages in Python
+# 📦 Modules and Packages in Python
 
-## Introduction
+## 📖 Introduction
 
 This section explores Python's module and package system, which provides a way to organize code into reusable components. Python's approach to modularity is more flexible than Java's package system and more structured than Go's package model, offering powerful features for code organization and distribution.
 

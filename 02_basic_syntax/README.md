@@ -1,12 +1,12 @@
-# Python Basic Syntax and Data Types
+# 📝 Python Basic Syntax and Data Types
 
-## Introduction
+## 📖 Introduction
 
 This section provides a comprehensive overview of Python's basic syntax and data types, with detailed comparisons to Java and Go. We'll explore how Python's dynamic typing system differs from the static typing systems you're familiar with, while showing how type hints bridge this gap.
 
-## Python's Type System
+## 🏷️ Python's Type System
 
-### Dynamic Typing with Type Hints
+### 🔄 Dynamic Typing with Type Hints
 
 Python combines dynamic typing with optional static type hints, offering flexibility while maintaining code clarity:
 
@@ -20,7 +20,7 @@ x: int = 42         # Type hint for better tooling
 y: str = "Hello"    # Clear intention, but not enforced
 ```
 
-### Type Hints vs Java/Go Types
+### 📊 Type Hints vs Java/Go Types
 
 Detailed comparison of type annotations across languages:
 
@@ -37,9 +37,9 @@ Detailed comparison of type annotations across languages:
 | Union | `Union[T1, T2]` | N/A | `interface{}` | Multiple possible types |
 | Generic | `TypeVar('T')` | `<T>` | N/A | Type parameters |
 
-## Data Structures Deep Dive
+## 💾 Data Structures Deep Dive
 
-### Numbers
+### 🔢 Numbers
 
 Python's numeric types offer more flexibility than Java or Go:
 
