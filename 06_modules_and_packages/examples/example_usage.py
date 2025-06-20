@@ -4,41 +4,30 @@
 Example usage of mypackage.
 """
 
-from mypackage import process_data, DataProcessor
-from mypackage.utils import debug_print
+from mypackage.core import JSONProcessor, APIClient
+from mypackage.utils import validate_email, format_date
+from datetime import datetime
 
 
-def main():
-    # Example data
-    data = [
-        "Hello, World!",
-        42,
-        {"name": "Alice", "age": 30},
-        3.14
-    ]
+def demonstrate_package_usage():
+    """Demonstrates usage of the mypackage module."""
+    # Demonstrate JSONProcessor
+    json_processor = JSONProcessor()
+    valid_json = '{"name": "test", "value": 123}'
+    invalid_json = '{"name": "test", "value":}'
     
-    # Using the convenience function
-    debug_print("Processing data using convenience function...")
-    result1 = process_data(data)
-    print("\nResults from process_data():")
-    for item in result1:
-        print(f"- {item}")
+    print(f"Validating valid JSON: {json_processor.validate(valid_json)}")
+    print(f"Validating invalid JSON: {json_processor.validate(invalid_json)}")
+    print(f"Processing valid JSON: {json_processor.process(valid_json)}")
     
-    # Using the class directly
-    debug_print("\nProcessing data using DataProcessor class...")
-    processor = DataProcessor({"debug": True})
-    result2 = processor.process(data)
-    print("\nResults from DataProcessor:")
-    for item in result2:
-        print(f"- {item}")
+    # Demonstrate APIClient
+    api_client = APIClient("https://api.example.com")
+    api_client.get("test")
     
-    # Example with invalid data
-    debug_print("\nTrying to process invalid data...", "WARNING")
-    try:
-        process_data(None)
-    except ValueError as e:
-        debug_print(f"Error: {e}", "ERROR")
+    # Demonstrate utils
+    print(f"Validating email 'test@example.com': {validate_email('test@example.com')}")
+    print(f"Formatting date: {format_date(datetime.now())}")
 
 
 if __name__ == "__main__":
-    main() 
+    demonstrate_package_usage() 

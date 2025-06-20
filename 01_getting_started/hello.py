@@ -23,7 +23,9 @@ def greet(name: str, times: int = 1) -> str:
         >>> greet("Bob", 2)
         'Hello, Bob!\nHello, Bob!'
     """
-    return "\n".join([f"Hello, {name}!" for _ in range(times)])
+    if times == 0:
+        return ""
+    return " ".join([f"Hello, {name}!"] * times)
 
 
 def process_data(items: List[Any], 

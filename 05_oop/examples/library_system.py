@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import List, Optional, Protocol, Set, Dict
 from enum import Enum, auto
+import uuid
 
 
 class ItemStatus(Enum):
@@ -60,34 +61,41 @@ class EmailValidator:
         self.name = name
 
 
-class LibraryItem(ABC):
+class Observer(Protocol):
+    """Protocol for observer objects."""
+    def update(self, message: str) -> None: ...
+
+
+class Observable:
+    """Base class for objects that can be observed."""
+    
+    def __init__(self) -> None:
+        self._observers: Set[Observer] = set()
+    
+    def add_observer(self, observer: 'Observer') -> None:
+        self._observers.add(observer)
+    
+    def detach(self, observer: 'Observer') -> None:
+        self._observers.discard(observer)
+    
+    def notify(self, message: str) -> None:
+        for observer in self._observers:
+            observer.update(message)
+
+
+class LibraryItem(ABC, Observable):
     """Abstract base class for all library items."""
     
-    def __init__(
-        self,
-        title: str,
-        item_id: str,
-        location: str
-    ) -> None:
+    def __init__(self, title: str) -> None:
+        super().__init__()
         self.title = title
-        self.item_id = item_id
-        self.location = location
-        self._status = ItemStatus.AVAILABLE
-        self._due_date: Optional[datetime] = None
-    
-    @property
-    def status(self) -> ItemStatus:
-        return self._status
-    
-    @property
-    def due_date(self) -> Optional[datetime]:
-        return self._due_date
-    
+        self.item_id = str(uuid.uuid4())
+
     @abstractmethod
     def get_loan_period(self) -> timedelta:
         """Return the loan period for this item."""
         pass
-    
+
     def __str__(self) -> str:
         return f"{self.title} ({self.item_id})"
 
@@ -98,15 +106,13 @@ class Book(LibraryItem):
     def __init__(
         self,
         title: str,
-        item_id: str,
-        location: str,
         author: str,
         isbn: str,
         pages: int,
         publisher: str,
         year: int
     ) -> None:
-        super().__init__(title, item_id, location)
+        super().__init__(title)
         self.author = author
         self.isbn = isbn
         self.pages = pages
@@ -114,7 +120,7 @@ class Book(LibraryItem):
         self.year = year
     
     def get_loan_period(self) -> timedelta:
-        return timedelta(days=21)  # 3 weeks
+        return timedelta(days=14)
 
 
 class DVD(LibraryItem):
@@ -123,19 +129,17 @@ class DVD(LibraryItem):
     def __init__(
         self,
         title: str,
-        item_id: str,
-        location: str,
         director: str,
         runtime: int,
         rating: str
     ) -> None:
-        super().__init__(title, item_id, location)
+        super().__init__(title)
         self.director = director
-        self.runtime = runtime  # in minutes
+        self.runtime = runtime
         self.rating = rating
     
     def get_loan_period(self) -> timedelta:
-        return timedelta(days=7)  # 1 week
+        return timedelta(days=7)
 
 
 class Searchable(Protocol):
@@ -150,159 +154,88 @@ class Reservable(Protocol):
 
 
 @dataclass
-class LibraryUser(Person):
+class LibraryUser:
     """Represents a library user."""
-    email: str = field(default="")  # Type hint for the descriptor
-    library_card: str = field(default_factory=lambda: f"LIB{datetime.now().timestamp():.0f}")
-    checked_out_items: List[LibraryItem] = field(default_factory=list)
-    reserved_items: Set[LibraryItem] = field(default_factory=set)
-    fines: float = field(default=0.0)
-    
-    # Email descriptor
-    email_validator = EmailValidator()
-
-
-class Observable(ABC):
-    """Base class for objects that can be observed."""
-    
-    def __init__(self) -> None:
-        self._observers: Set[Observer] = set()
-    
-    def attach(self, observer: 'Observer') -> None:
-        self._observers.add(observer)
-    
-    def detach(self, observer: 'Observer') -> None:
-        self._observers.discard(observer)
-    
-    def notify(self, message: str) -> None:
-        for observer in self._observers:
-            observer.update(message)
-
-
-class Observer(Protocol):
-    """Protocol for observer objects."""
-    def update(self, message: str) -> None: ...
+    name: str
+    email: str
+    user_id: str
+    borrowed_items: List[LibraryItem] = field(default_factory=list)
 
 
 class Library(Observable):
     """Main library class implementing the Observer pattern."""
     
-    def __init__(self, name: str) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.name = name
         self.items: Dict[str, LibraryItem] = {}
-        self.users: Dict[str, LibraryUser] = {}
     
     def add_item(self, item: LibraryItem) -> None:
         """Add a new item to the library."""
         self.items[item.item_id] = item
         self.notify(f"New item added: {item}")
     
-    def register_user(self, user: LibraryUser) -> None:
-        """Register a new library user."""
-        self.users[user.library_card] = user
-        self.notify(f"New user registered: {user.name}")
-    
-    def check_out_item(
-        self,
-        item_id: str,
-        user_card: str
-    ) -> bool:
-        """Check out an item to a user."""
-        if item_id not in self.items or user_card not in self.users:
-            return False
-        
-        item = self.items[item_id]
-        user = self.users[user_card]
-        
-        if item.status != ItemStatus.AVAILABLE:
-            return False
-        
-        item._status = ItemStatus.CHECKED_OUT
-        item._due_date = datetime.now() + item.get_loan_period()
-        user.checked_out_items.append(item)
-        
-        self.notify(f"{item} checked out to {user.name}")
-        return True
-    
-    def return_item(self, item_id: str) -> bool:
-        """Return an item to the library."""
-        if item_id not in self.items:
-            return False
-        
-        item = self.items[item_id]
-        if item.status != ItemStatus.CHECKED_OUT:
-            return False
-        
-        # Find user who has this item
-        for user in self.users.values():
-            if item in user.checked_out_items:
-                user.checked_out_items.remove(item)
-                break
-        
-        item._status = ItemStatus.AVAILABLE
-        item._due_date = None
-        
-        self.notify(f"{item} returned to library")
-        return True
+    def remove_item(self, item_id: str) -> None:
+        """Remove an item from the library."""
+        if item_id in self.items:
+            del self.items[item_id]
+            self.notify(f"Item {item_id} removed.")
+
+    def find_item(self, item_id: str) -> Optional[LibraryItem]:
+        """Find an item by its ID."""
+        return self.items.get(item_id)
 
 
-class LibraryLogger(Observer):
-    """Observer that logs library events."""
+class LibraryLogger:
+    """A simple logger that observes the library."""
     
-    def __init__(self, log_file: str) -> None:
-        self.log_file = log_file
-    
+    def __init__(self) -> None:
+        self.logs: List[str] = []
+        
     def update(self, message: str) -> None:
-        """Log a message with timestamp."""
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        with open(self.log_file, "a") as f:
-            f.write(f"[{timestamp}] {message}\n")
+        """Receives notification from the observable."""
+        self.logs.append(f"[{datetime.now()}] {message}")
 
 
-def main() -> None:
-    """Example usage of the library system."""
-    # Create library and logger
-    library = Library("Community Library")
-    logger = LibraryLogger("library.log")
-    library.attach(logger)
+def main():
+    """Main function to demonstrate the library system."""
+    # Create a library
+    library = Library()
     
-    # Create some books and DVDs
-    book1 = Book(
-        title="Python Programming",
-        item_id="B001",
-        location="Floor 1, Section A",
-        author="John Smith",
-        isbn="123-456-789",
-        pages=300,
-        publisher="Tech Books",
-        year=2023
+    # Create a logger and attach it to the library
+    logger = LibraryLogger()
+    library.add_observer(logger)
+    
+    # Create some library items
+    book = Book(
+        title="The Hitchhiker's Guide to the Galaxy",
+        author="Douglas Adams",
+        isbn="0-345-39180-2",
+        pages=224,
+        publisher="Pan Books",
+        year=1979
     )
     
-    dvd1 = DVD(
-        title="Python Tutorial Series",
-        item_id="D001",
-        location="Floor 2, Section B",
-        director="Jane Doe",
-        runtime=180,
-        rating="E"
+    dvd = DVD(
+        title="The Princess Bride",
+        director="Rob Reiner",
+        runtime=98,
+        rating="PG"
     )
     
-    # Add items to library
-    library.add_item(book1)
-    library.add_item(dvd1)
+    # Add items to the library
+    library.add_item(book)
+    library.add_item(dvd)
     
-    # Register a user
+    # Create a library user
     user = LibraryUser(
-        name="Alice Johnson",
-        email="alice@example.com",
-        phone="123-456-7890"
+        name="John Doe",
+        email="johndoe@example.com",
+        user_id="USER001"
     )
-    library.register_user(user)
     
-    # Check out and return items
-    library.check_out_item(book1.item_id, user.library_card)
-    library.return_item(book1.item_id)
+    # Print out the logs
+    for log in logger.logs:
+        print(log)
 
 
 if __name__ == "__main__":

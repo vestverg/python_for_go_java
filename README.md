@@ -173,10 +173,8 @@ This tutorial is structured to:
 │   ├── 🐍 test_hello.py
 │   ├── 🐍 test_modules.py
 │   └── 🐍 test_oop.py
-├── 📄 LINKEDIN_ANNOUNCEMENT.md    # LinkedIn post
 ├── 📄 Makefile                   # Build automation
 ├── 📄 README.md                  # This file
-├── 📄 RELEASE_NOTES.md           # Version history
 ├── ⚙️ .gitignore                 # Git ignore patterns
 ├── ⚙️ .pylintrc                  # Pylint configuration
 ├── ⚙️ mypy.ini                   # Type checking config

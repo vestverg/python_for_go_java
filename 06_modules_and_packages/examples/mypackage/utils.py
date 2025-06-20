@@ -2,56 +2,19 @@
 Utility functions for the mypackage package.
 """
 
-from typing import List, Any
-import json
+import re
+from datetime import datetime
 
 
-def validate_input(data: List[Any]) -> bool:
-    """
-    Validate input data.
-    
-    Args:
-        data: List of data items to validate
-    
-    Returns:
-        bool: True if data is valid, False otherwise
-    """
-    if not isinstance(data, list):
+def validate_email(email: str) -> bool:
+    """Validate an email address."""
+    if not isinstance(email, str):
         return False
-    
-    if not data:  # Empty list is invalid
-        return False
-    
-    return all(isinstance(item, (str, int, float, dict)) for item in data)
+    # A simple regex for email validation
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+    return re.match(pattern, email) is not None
 
 
-def format_output(data: List[Any]) -> List[Any]:
-    """
-    Format output data.
-    
-    Args:
-        data: List of processed data items
-    
-    Returns:
-        List[Any]: Formatted data
-    """
-    formatted = []
-    for item in data:
-        if isinstance(item, dict):
-            # Convert dict to JSON string
-            formatted.append(json.dumps(item))
-        else:
-            # Convert to string
-            formatted.append(str(item))
-    return formatted
-
-
-def debug_print(message: str, level: str = "INFO") -> None:
-    """
-    Print debug messages.
-    
-    Args:
-        message: Debug message
-        level: Debug level (INFO, WARNING, ERROR)
-    """
-    print(f"[{level}] {message}") 
+def format_date(dt: datetime) -> str:
+    """Format a datetime object into a string."""
+    return dt.strftime("%Y-%m-%d %H:%M:%S")

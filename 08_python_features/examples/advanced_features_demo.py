@@ -14,326 +14,221 @@ This module showcases advanced Python features including:
 
 import time
 import functools
+from typing import Any, Callable, Generator, Type, Dict
 import contextlib
-from typing import (
-    Any, Callable, Generator, Iterator, Protocol, TypeVar, Generic,
-    Union, Optional, List, Dict, Type, runtime_checkable
-)
-from abc import ABC, abstractmethod
-import json
-import sqlite3
-from dataclasses import dataclass
-from collections.abc import Iterable
 
 
 # ============================================================================
 # DECORATORS
 # ============================================================================
 
-F = TypeVar('F', bound=Callable[..., Any])
+F = functools.partial(type, bound=Callable[..., Any])
 
-def performance_monitor(func: F) -> F:
-    """Decorator to monitor function performance."""
+def timer_decorator(func: F) -> F:
+    """Decorator that prints the execution time of a function."""
     @functools.wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
+    def wrapper(*args, **kwargs):
         start_time = time.time()
-        
-        try:
-            result = func(*args, **kwargs)
-            success = True
-            error = None
-        except Exception as e:
-            result = None
-            success = False
-            error = str(e)
-            raise
-        finally:
-            end_time = time.time()
-            print(f"[PERF] {func.__name__}: {end_time - start_time:.4f}s, {success}")
-        
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(f"{func.__name__} executed in {end_time - start_time:.4f} seconds")
         return result
-    
     return wrapper
 
-def cache_with_ttl(ttl_seconds: float = 60.0):
-    """Decorator that caches function results with TTL."""
+def retry_decorator(max_attempts: int = 3, delay: float = 1.0):
+    """Decorator that retries a function on failure."""
     def decorator(func: F) -> F:
-        cache: Dict[tuple, tuple] = {}  # key -> (result, timestamp)
-        
         @functools.wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
-            key = (args, tuple(sorted(kwargs.items())))
-            current_time = time.time()
-            
-            if key in cache:
-                result, timestamp = cache[key]
-                if current_time - timestamp < ttl_seconds:
-                    print(f"Cache hit for {func.__name__}")
-                    return result
-            
-            result = func(*args, **kwargs)
-            cache[key] = (result, current_time)
-            print(f"Cache miss for {func.__name__}")
-            return result
-        
-        wrapper.cache_clear = lambda: cache.clear()
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    print(f"Attempt {attempt + 1} failed: {e}")
+                    if attempt + 1 == max_attempts:
+                        raise
+                    time.sleep(delay)
         return wrapper
     return decorator
-
-def add_string_representation(cls: Type) -> Type:
-    """Class decorator that adds a string representation."""
-    def __str__(self) -> str:
-        attrs = ', '.join(f"{k}={v}" for k, v in self.__dict__.items())
-        return f"{self.__class__.__name__}({attrs})"
-    
-    cls.__str__ = __str__
-    return cls
 
 
 # ============================================================================
 # CONTEXT MANAGERS
 # ============================================================================
 
+class ManagedResource:
+    """A simple managed resource context manager."""
+    def __init__(self, name: str):
+        self.name = name
+
+    def __enter__(self):
+        print(f"Acquiring resource {self.name}")
+        return self.name
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        print(f"Releasing resource {self.name}")
+
 @contextlib.contextmanager
 def timer_context(operation_name: str) -> Generator[Dict[str, float], None, None]:
     """Context manager that times operations."""
     start_time = time.time()
-    timing_info = {'start': start_time}
+    timing_info = {'start': start_time, 'elapsed': 0}
     
     try:
         yield timing_info
     finally:
         end_time = time.time()
         timing_info['end'] = end_time
-        timing_info['duration'] = end_time - start_time
-        print(f"{operation_name} took {timing_info['duration']:.4f} seconds")
-
+        timing_info['elapsed'] = end_time - start_time
+        print(f"{operation_name} took {timing_info['elapsed']:.4f} seconds")
 
 # ============================================================================
-# GENERATORS AND ITERATORS
+# GENERATORS
 # ============================================================================
 
-def fibonacci_sequence(limit: Optional[int] = None) -> Generator[int, None, None]:
-    """Generate Fibonacci numbers up to limit."""
+def fibonacci_generator() -> Generator[int, None, None]:
+    """Generate an infinite sequence of Fibonacci numbers."""
     a, b = 0, 1
-    count = 0
-    
-    while limit is None or count < limit:
+    while True:
         yield a
         a, b = b, a + b
-        count += 1
 
-def batch_iterator(iterable: Iterable, batch_size: int) -> Generator[List[Any], None, None]:
-    """Yield batches of items from an iterable."""
-    iterator = iter(iterable)
+def infinite_counter(start: int = 0, step: int = 1) -> Generator[int, None, None]:
+    """Generate an infinite sequence of numbers."""
+    n = start
     while True:
-        batch = []
-        for _ in range(batch_size):
-            try:
-                batch.append(next(iterator))
-            except StopIteration:
-                if batch:
-                    yield batch
-                return
-        yield batch
-
+        yield n
+        n += step
 
 # ============================================================================
 # METACLASSES
 # ============================================================================
 
 class SingletonMeta(type):
-    """Metaclass for singleton pattern."""
+    """Metaclass for creating singleton classes."""
     _instances: Dict[Type, Any] = {}
-    
-    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
+
+    def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
             cls._instances[cls] = super().__call__(*args, **kwargs)
         return cls._instances[cls]
 
+class AutoPropertyMeta(type):
+    """Metaclass that automatically creates properties for private attributes."""
+    def __new__(cls, name, bases, dct):
+        for attr_name, value in dct.items():
+            if attr_name.startswith('_') and not attr_name.startswith('__'):
+                prop_name = attr_name[1:]
+                if prop_name not in dct:
+                    dct[prop_name] = property(lambda self, name=attr_name: getattr(self, name))
+        return super().__new__(cls, name, bases, dct)
 
 # ============================================================================
 # DESCRIPTORS
 # ============================================================================
 
-class TypedDescriptor:
-    """Descriptor that enforces type checking."""
-    
-    def __init__(self, expected_type: Type, default: Any = None) -> None:
+class ValidatedAttribute:
+    """Descriptor for an attribute that must be within a given range."""
+    def __init__(self, min_value: float, max_value: float):
+        self.min_value = min_value
+        self.max_value = max_value
+        self._values = {}
+
+    def __set_name__(self, owner, name):
+        self._name = name
+
+    def __get__(self, instance, owner):
+        return self._values.get(instance)
+
+    def __set__(self, instance, value):
+        if not self.min_value <= value <= self.max_value:
+            raise ValueError(f"{self._name} must be between {self.min_value} and {self.max_value}")
+        self._values[instance] = value
+
+class TypedAttribute:
+    """Descriptor that enforces a specific type."""
+    def __init__(self, expected_type: Type):
         self.expected_type = expected_type
-        self.default = default
-        self.name = ""
-    
-    def __set_name__(self, owner: Type, name: str) -> None:
-        self.name = name
-    
-    def __get__(self, instance: Any, owner: Type) -> Any:
-        if instance is None:
-            return self
-        return getattr(instance, f"_{self.name}", self.default)
-    
-    def __set__(self, instance: Any, value: Any) -> None:
+        self._values = {}
+
+    def __set_name__(self, owner, name):
+        self._name = name
+
+    def __get__(self, instance, owner):
+        return self._values.get(instance)
+
+    def __set__(self, instance, value):
         if not isinstance(value, self.expected_type):
-            raise TypeError(
-                f"{self.name} must be of type {self.expected_type.__name__}, "
-                f"got {type(value).__name__}"
-            )
-        setattr(instance, f"_{self.name}", value)
-
+            raise TypeError(f"{self._name} must be of type {self.expected_type.__name__}")
+        self._values[instance] = value
 
 # ============================================================================
-# PROTOCOLS AND TYPE HINTS
+# PROPERTIES
 # ============================================================================
 
-@runtime_checkable
-class Drawable(Protocol):
-    """Protocol for drawable objects."""
-    def draw(self) -> str: ...
+class Temperature:
+    """A class that uses properties to handle temperature conversions."""
+    def __init__(self, celsius: float):
+        self.celsius = celsius
 
-
-# ============================================================================
-# EXAMPLE CLASSES USING ADVANCED FEATURES
-# ============================================================================
-
-class ConfigManager(metaclass=SingletonMeta):
-    """Configuration manager using singleton pattern."""
-    
-    def __init__(self) -> None:
-        self._settings: Dict[str, Any] = {}
-    
-    def set(self, key: str, value: Any) -> None:
-        self._settings[key] = value
-    
-    def get(self, key: str, default: Any = None) -> Any:
-        return self._settings.get(key, default)
-
-class Rectangle:
-    """Rectangle class demonstrating descriptors."""
-    
-    color = TypedDescriptor(str, default="black")
-    
-    def __init__(self, width: float, height: float, color: str = "black") -> None:
-        self.width = width
-        self.height = height
-        self.color = color
-    
     @property
-    def area(self) -> float:
-        return self.width * self.height
-    
-    def draw(self) -> str:
-        return f"Rectangle({self.width}x{self.height}, {self.color})"
+    def fahrenheit(self) -> float:
+        return self.celsius * 9/5 + 32
 
-class DataProcessor:
-    """Data processor with cached properties."""
-    
-    def __init__(self, data: List[int]) -> None:
-        self.data = data
-    
-    @functools.cached_property
-    def mean(self) -> float:
-        """Cached mean calculation."""
-        print("Computing mean...")
-        return sum(self.data) / len(self.data)
-    
-    @performance_monitor
-    @cache_with_ttl(ttl_seconds=30)
-    def expensive_computation(self, factor: float) -> List[float]:
-        """Expensive computation with caching and monitoring."""
-        time.sleep(0.1)  # Simulate expensive operation
-        return [x * factor for x in self.data]
+    @fahrenheit.setter
+    def fahrenheit(self, value: float):
+        self.celsius = (value - 32) * 5/9
 
+    @property
+    def kelvin(self) -> float:
+        return self.celsius + 273.15
+
+    @kelvin.setter
+    def kelvin(self, value: float):
+        self.celsius = value - 273.15
 
 # ============================================================================
-# DEMONSTRATION FUNCTIONS
+# MAIN FUNCTION
 # ============================================================================
 
-def demonstrate_decorators() -> None:
-    """Demonstrate decorator usage."""
-    print("=== DECORATOR DEMONSTRATION ===")
+def main():
+    """Demonstrate all the advanced features."""
+    print("Demonstrating Advanced Python Features")
     
-    processor = DataProcessor([1, 2, 3, 4, 5])
-    
-    # First call - cache miss
-    result1 = processor.expensive_computation(2.0)
-    
-    # Second call - cache hit
-    result2 = processor.expensive_computation(2.0)
-    
-    print(f"Results equal: {result1 == result2}")
-
-def demonstrate_context_managers() -> None:
-    """Demonstrate context manager usage."""
-    print("\n=== CONTEXT MANAGER DEMONSTRATION ===")
-    
-    with timer_context("Simulation") as timer:
+    @timer_decorator
+    def example_function():
+        print("Executing example function")
         time.sleep(0.1)
 
-def demonstrate_generators() -> None:
-    """Demonstrate generator usage."""
-    print("\n=== GENERATOR DEMONSTRATION ===")
-    
-    # Fibonacci generator
-    fib = fibonacci_sequence(10)
-    print(f"First 10 Fibonacci numbers: {list(fib)}")
-    
-    # Batch processing
-    data = range(20)
-    for i, batch in enumerate(batch_iterator(data, 5)):
-        print(f"Batch {i}: {batch}")
+    example_function()
 
-def demonstrate_metaclasses() -> None:
-    """Demonstrate metaclass usage."""
-    print("\n=== METACLASS DEMONSTRATION ===")
-    
-    # Singleton
-    config1 = ConfigManager()
-    config2 = ConfigManager()
-    print(f"Same instance: {config1 is config2}")
-    
-    config1.set("debug", True)
-    print(f"Config value: {config2.get('debug')}")
+    with ManagedResource("test") as r:
+        print(f"Inside with block for {r}")
 
-def demonstrate_descriptors() -> None:
-    """Demonstrate descriptor usage."""
-    print("\n=== DESCRIPTOR DEMONSTRATION ===")
-    
-    rect = Rectangle(10, 5, "blue")
-    print(f"Rectangle: {rect.draw()}")
-    print(f"Area: {rect.area}")
-    
-    try:
-        rect.color = 123  # Should raise TypeError
-    except TypeError as e:
-        print(f"Validation error: {e}")
+    fib = fibonacci_generator()
+    print(f"First 5 Fibonacci numbers: {[next(fib) for _ in range(5)]}")
 
-def demonstrate_protocols() -> None:
-    """Demonstrate protocol usage."""
-    print("\n=== PROTOCOL DEMONSTRATION ===")
-    
-    rect = Rectangle(8, 6)
-    
-    # Check if rectangle implements Drawable protocol
-    if isinstance(rect, Drawable):
-        print(f"Rectangle is drawable: {rect.draw()}")
+    class MySingleton(metaclass=SingletonMeta):
+        pass
 
-def main() -> None:
-    """Main demonstration function."""
-    print("Advanced Python Features Demonstration")
-    print("=" * 50)
-    
-    try:
-        demonstrate_decorators()
-        demonstrate_context_managers()
-        demonstrate_generators()
-        demonstrate_metaclasses()
-        demonstrate_descriptors()
-        demonstrate_protocols()
-        
-    except Exception as e:
-        print(f"Error during demonstration: {e}")
-        import traceback
-        traceback.print_exc()
+    a = MySingleton()
+    b = MySingleton()
+    print(f"Are singletons the same? {a is b}")
+
+    class MyClass:
+        validated = ValidatedAttribute(0, 100)
+        typed = TypedAttribute(int)
+
+    mc = MyClass()
+    mc.validated = 50
+    mc.typed = 10
+    print(f"Validated: {mc.validated}, Typed: {mc.typed}")
+
+    temp = Temperature(25)
+    print(f"Celsius: {temp.celsius}, Fahrenheit: {temp.fahrenheit}, Kelvin: {temp.kelvin}")
+    temp.fahrenheit = 32
+    print(f"New Celsius: {temp.celsius}")
+
 
 if __name__ == "__main__":
-    main() 
+    main()

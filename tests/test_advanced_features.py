@@ -57,7 +57,7 @@ def test_context_managers() -> None:
             time.sleep(0.1)
         
         # Timer should have recorded some time
-        assert timer.elapsed > 0
+        assert timer['elapsed'] > 0
         
     except ImportError:
         pytest.skip("Advanced features demo not available")

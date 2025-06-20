@@ -25,7 +25,7 @@ def test_package_imports() -> None:
     """Test that package imports work correctly."""
     try:
         # Try importing the package modules
-        from mypackage import DataProcessor, APIClient
+        from mypackage import JSONProcessor, APIClient
         from mypackage.utils import validate_email, format_date
         
         # If we get here, imports worked

@@ -10,13 +10,7 @@ Ever tried switching from Java/Go to Python and got confused by the differences?
 • Quick-start guides for each concept
 • Full working project to practice with
 
-The best part? It's all open source! Check it out here: [Repository Link]
 
 Would love your feedback and contributions! 🙌
 
 #Python #CodingLife #OpenSource #DevLife
-
----
-Ready to start? Check out our repository and star it if you find it helpful! 
-
-[Repository Link] 

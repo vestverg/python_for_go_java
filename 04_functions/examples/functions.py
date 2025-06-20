@@ -5,10 +5,57 @@ This example demonstrates Python's functions and methods,
 with comparisons to Java and Go concepts.
 """
 
-from typing import List, Dict, Any, Optional, TypeVar, Generic
+from typing import List, Dict, Any, Optional, TypeVar, Generic, Callable, Iterator
 from dataclasses import dataclass
 from functools import wraps
 import time
+
+
+def calculate_total(prices: List[float], tax_rate: float = 0.1, discount: float = 0.0) -> float:
+    """Calculates the total price after tax and discount."""
+    subtotal = sum(prices)
+    subtotal_after_discount = subtotal * (1 - discount)
+    total = subtotal_after_discount * (1 + tax_rate)
+    return total
+
+
+def factorial(n: int) -> int:
+    """Computes the factorial of a non-negative integer."""
+    if n < 0:
+        raise ValueError("Factorial is not defined for negative numbers")
+    if n == 0:
+        return 1
+    result = 1
+    for i in range(1, n + 1):
+        result *= i
+    return result
+
+
+def fibonacci_generator(count: int) -> Iterator[int]:
+    """Generates the first `count` Fibonacci numbers."""
+    a, b = 0, 1
+    for _ in range(count):
+        yield a
+        a, b = b, a + b
+
+
+def process_with_callback(data: List[Any], callback: Callable[[Any], Any]) -> List[Any]:
+    """Processes a list of data using a callback function."""
+    return [callback(item) for item in data]
+
+
+def TimerDecorator(name: str):
+    """A decorator that prints the execution time of a function."""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            result = func(*args, **kwargs)
+            end_time = time.time()
+            print(f"{name}: {end_time - start_time:.4f} seconds")
+            return result
+        return wrapper
+    return decorator
 
 
 # Type variable for generic types (similar to Java's <T> or Go's interface{})
