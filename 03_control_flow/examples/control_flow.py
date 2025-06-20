@@ -5,10 +5,55 @@ This example demonstrates Python's control flow mechanisms,
 with comparisons to Java and Go concepts.
 """
 
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 from dataclasses import dataclass
 import sys
 from contextlib import contextmanager
+
+
+class ValidationError(Exception):
+    """Custom exception for validation errors."""
+    def __init__(self, message: str, code: int):
+        super().__init__(message)
+        self.code = code
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+
+def check_grade(score: int) -> str:
+    """Returns a letter grade based on a numeric score."""
+    if score >= 90:
+        return "A"
+    elif score >= 80:
+        return "B"
+    elif score >= 70:
+        return "C"
+    elif score >= 60:
+        return "D"
+    else:
+        return "F"
+
+
+def analyze_data(data: List[Any]) -> Dict[str, Any]:
+    """Analyzes a list of data and returns a summary."""
+    if not data:
+        return {"type": "empty", "count": 0}
+
+    if all(isinstance(x, (int, float)) for x in data):
+        return {"type": "numbers", "count": len(data), "sum": sum(data)}
+    
+    if all(isinstance(x, str) for x in data):
+        return {"type": "strings", "count": len(data), "total_length": sum(len(s) for s in data)}
+    
+    return {"type": "mixed", "count": len(data)}
+
+
+def safe_divide(a: float, b: float) -> float:
+    """Divides two numbers, raising an error if the divisor is zero."""
+    if b == 0:
+        raise ZeroDivisionError("Cannot divide by zero.")
+    return a / b
 
 
 @dataclass
@@ -30,7 +75,7 @@ def demonstrate_conditionals(value: Any) -> None:
         print(f"Got something else: {type(value)}")
     
     # Ternary operator
-    result = "even" if value % 2 == 0 else "odd" if isinstance(value, int) else "not a number"
+    result = ("even" if value % 2 == 0 else "odd") if isinstance(value, int) else "not a number"
     print(f"Value is: {result}")
 
 
